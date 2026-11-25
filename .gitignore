@@ -1,0 +1,45 @@
+node_modules/
+dist/
+
+# banco de dados e backups 
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+*.sqlite
+*.sqlite3
+backup_*
+backups-automaticos/
+
+# arquivos exportados pelo sistema
+OS_*.png
+*.pdf
+*.csv
+*.xls
+*.xlsx
+
+# senhas e chaves
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+*.p12
+.npmrc
+
+# instaladores e compactados
+*.exe
+*.zip
+
+# prints e videos soltos na raiz
+/*.png
+/*.jpg
+*.mp4
+*.mov
+
+# logs e arquivos do sistema
+*.log
+Thumbs.db
+.DS_Store
+.vscode/
+.idea/

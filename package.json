@@ -1,0 +1,64 @@
+{
+  "name": "sos-roupas-app",
+  "version": "1.1.0",
+  "description": "Sistema de gestão da SOS Roupas",
+  "author": "SOS Roupas",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir --win --x64",
+    "dist": "electron-builder --win --x64"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "html-to-image": "^1.11.13"
+  },
+  "devDependencies": {
+    "electron": "^45.0.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "br.com.sosroupas.gestao",
+    "productName": "SOS Roupas",
+    "copyright": "SOS Roupas",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "database.js",
+      "src/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "assets/icon.ico",
+        "to": "icon.ico"
+      }
+    ],
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**"
+    ],
+    "npmRebuild": false,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "deleteAppDataOnUninstall": false,
+      "shortcutName": "SOS Roupas",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "artifactName": "Instalador-SOS-Roupas-${version}.${ext}"
+    }
+  }
+}

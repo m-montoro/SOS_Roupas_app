@@ -1,0 +1,5 @@
+# Evita que o Git estrague os scripts do Windows e os arquivos binários
+* text=auto
+*.bat text eol=crlf
+*.png binary
+*.ico binary

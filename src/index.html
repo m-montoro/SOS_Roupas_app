@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <!--> SEGURANÇA: só carrega recursos do próprio app (e as fontes do Google, que são opcionais). Nenhum script externo, nenhuma conexão para fora. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SOS ROUPAS — Sistema de Gestão</title>
+  <!-- As fontes são opcionais: sem internet o app usa as fontes padrão e continua funcionando -->
+  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    // Se qualquer erro acontecer na tela, mostra um aviso vermelho com a mensagem (facilita achar o problema)
+    function mostrarBannerErro(msg) {
+      var b = document.getElementById('erro-banner');
+      if (!b) {
+        b = document.createElement('div');
+        b.id = 'erro-banner';
+        b.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#E53E2A;color:#fff;font:12px monospace;padding:10px 14px;white-space:pre-wrap;user-select:text;max-height:40vh;overflow:auto;';
+        (document.body || document.documentElement).appendChild(b);
+      }
+      b.textContent = 'ERRO: ' + msg;
+    }
+    window.addEventListener('error', function (e) { mostrarBannerErro((e.message || e.error) + (e.filename ? '\n' + e.filename + ':' + e.lineno : '')); });
+    window.addEventListener('unhandledrejection', function (e) { mostrarBannerErro(e.reason && e.reason.stack ? e.reason.stack : e.reason); });
+  </script>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="brand">
+      <img class="brand-logo" src="logo.png" alt="S.O.S Roupas">
+      <div>
+        <div class="brand-name">SOS ROUPAS</div>
+        <span class="brand-sub">Sistema Desktop de Gestão</span>
+      </div>
+    </div>
+    <nav class="nav-tabs">
+      <button class="nav-tab active" onclick="showSection('dashboard')" id="tab-dashboard">📊 Dashboard</button>
+      <button class="nav-tab" onclick="showSection('clientes')" id="tab-clientes">👤 Clientes</button>
+      <button class="nav-tab" onclick="showSection('ordens')" id="tab-ordens">📋 Ordens</button>
+      <button class="nav-tab" onclick="showSection('nova-os')" id="tab-nova-os">➕ Nova OS</button>
+      <button class="nav-tab" onclick="showSection('relatorios')" id="tab-relatorios">🖨 Relatórios</button>
+    </nav>
+  </div>
+
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="section active" id="section-dashboard">
+      <div class="page-header">
+        <div class="page-title"><span>Visão Geral</span>DASHBOARD</div>
+        <div class="datetime-display" id="datetime-display"></div>
+      </div>
+
+      <!-- BACKUP -->
+      <div class="toolbar">
+        <div class="backup-box">
+          <button class="btn btn-primary" onclick="fazerBackup()">💾 Fazer backup</button>
+          <button class="btn btn-secondary" onclick="restaurarBackup()">📂 Restaurar backup</button>
+          <span class="backup-info" id="backup-info"></span>
+        </div>
+      </div>
+
+      <div class="section-label">Situação atual</div>
+      <div class="stats-grid">
+        <div class="stat-card yellow">
+          <div class="stat-card-label">Clientes</div>
+          <div class="stat-card-value" id="stat-clientes">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Aguardando</div>
+          <div class="stat-card-value" id="stat-aguardando">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Em Produção</div>
+          <div class="stat-card-value" id="stat-producao">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Prontas p/ retirar</div>
+          <div class="stat-card-value" id="stat-prontas">0</div>
+        </div>
+        <div class="stat-card danger-card">
+          <div class="stat-card-label">Ordens em Atraso</div>
+          <div class="stat-card-value" id="stat-atrasadas">0</div>
+        </div>
+        <div class="stat-card danger-card">
+          <div class="stat-card-label">A receber (total)</div>
+          <div class="stat-card-value stat-money" id="stat-areceber">R$ 0,00</div>
+        </div>
+      </div>
+
+      <!-- SELETOR DE MÊS -->
+      <div class="toolbar mes-bar">
+        <div class="section-label" style="margin:0;">Resumo de <span id="mes-titulo"></span></div>
+        <div class="mes-nav">
+          <button class="btn btn-secondary btn-sm" onclick="mudarMes(-1)" title="Mês anterior">◀</button>
+          <select id="sel-mes" onchange="escolherMesAno()"></select>
+          <select id="sel-ano" onchange="escolherMesAno()"></select>
+          <button class="btn btn-secondary btn-sm" onclick="mudarMes(1)" title="Próximo mês">▶</button>
+          <button class="btn btn-primary btn-sm" onclick="irParaMesAtual()">Mês atual</button>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card success-card">
+          <div class="stat-card-label">Recebido no mês</div>
+          <div class="stat-card-value stat-money" id="stat-faturamento">R$ 0,00</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">OS abertas no mês</div>
+          <div class="stat-card-value" id="stat-os-mes">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Entregas previstas</div>
+          <div class="stat-card-value" id="stat-entregas-mes">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Ticket médio</div>
+          <div class="stat-card-value stat-money" id="stat-ticket">R$ 0,00</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Novos clientes</div>
+          <div class="stat-card-value" id="stat-novos-clientes">0</div>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-card chart-wide">
+          <div class="chart-title">Recebido por dia</div>
+          <div id="chart-dias"></div>
+        </div>
+        <div class="chart-card chart-wide">
+          <div class="chart-title">Recebido nos últimos 12 meses</div>
+          <div id="chart-12m"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Formas de pagamento</div>
+          <div id="chart-formas"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Serviços mais pedidos</div>
+          <div id="chart-servicos"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">OS do mês por status</div>
+          <div id="chart-status"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLIENTES -->
+    <div class="section" id="section-clientes">
+      <div class="page-header">
+        <div class="page-title"><span>Cadastro</span>CLIENTES</div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-title" id="cliente-form-titulo">👤 Novo Cliente</div>
+        <input type="hidden" id="cliente-id">
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label>Nome Completo *</label>
+            <input type="text" id="cli-nome" placeholder="Ex: Maria Silva">
+          </div>
+          <div class="form-group">
+            <label>Telefone / WhatsApp *</label>
+            <input type="tel" id="cli-tel" placeholder="(99) 99999-9999">
+          </div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label>Endereço</label>
+            <input type="text" id="cli-endereco" placeholder="Rua, número, bairro">
+          </div>
+          <div class="form-group">
+            <label>Cidade</label>
+            <input type="text" id="cli-cidade" placeholder="Cidade">
+          </div>
+        </div>
+        <div class="form-grid form-grid-2">
+          <div class="form-group">
+            <label>Observações</label>
+            <textarea id="cli-obs"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Medidas Especiais</label>
+            <textarea id="cli-medidas"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-secondary" id="btn-cancelar-edicao" onclick="cancelarEdicaoCliente()" style="display:none;">✕ Cancelar edição</button>
+          <button class="btn btn-primary" onclick="salvarCliente()">✓ Salvar Cliente</button>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nome</th>
+              <th>Telefone</th>
+              <th>Cidade</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="clientes-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ORDENS -->
+    <div class="section" id="section-ordens">
+      <div class="page-header">
+        <div class="page-title"><span>Acompanhamento</span>ORDENS DE SERVIÇO</div>
+        <button class="btn btn-primary" onclick="showSection('nova-os')">➕ Nova OS</button>
+      </div>
+
+      <div class="form-card filtros-os">
+        <div class="filtros-linha">
+          <div class="form-group filtro-busca">
+            <label>Buscar</label>
+            <input type="text" id="fo-busca" placeholder="Nº da OS, cliente, telefone, peça, observação..." autocomplete="off" oninput="aplicarFiltrosOS()">
+          </div>
+          <div class="form-group">
+            <label>Status da OS</label>
+            <select id="fo-status" onchange="aplicarFiltrosOS()">
+              <option value="">Todos</option>
+              <option value="abertas">Em aberto (não entregues)</option>
+              <option value="Aguardando">Aguardando</option>
+              <option value="Em Produção">Em Produção</option>
+              <option value="Pronto">Pronto</option>
+              <option value="Entregue">Entregue</option>
+              <option value="Cancelado">Cancelado</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Empresa</label>
+            <select id="fo-empresa" onchange="aplicarFiltrosOS()">
+              <option value="">Todas</option>
+              <option value="SOS Roupas">SOS Roupas</option>
+              <option value="Bruan's...">Bruan's...</option>
+              <option value="MB Fitness">MB Fitness</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Entrega</label>
+            <select id="fo-entrega" onchange="aplicarFiltrosOS()">
+              <option value="">Qualquer data</option>
+              <option value="atrasadas">Atrasadas</option>
+              <option value="hoje">Hoje (não entregues)</option>
+              <option value="7dias">Próximos 7 dias (não entregues)</option>
+            </select>
+          </div>
+        </div>
+        <div class="filtros-linha filtros-linha-2">
+          <div class="form-group">
+            <label>Entrega de</label>
+            <input type="date" id="fo-de" onchange="aplicarFiltrosOS()">
+          </div>
+          <div class="form-group">
+            <label>Entrega até</label>
+            <input type="date" id="fo-ate" onchange="aplicarFiltrosOS()">
+          </div>
+          <div class="form-group">
+            <label>Ordenar por</label>
+            <select id="fo-ordem" onchange="aplicarFiltrosOS()">
+              <option value="recentes">Mais recentes</option>
+              <option value="entrega">Entrega mais próxima</option>
+              <option value="maior">Maior valor</option>
+              <option value="cliente">Cliente (A–Z)</option>
+            </select>
+          </div>
+          <div class="filtros-checks">
+            <label class="chk"><input type="checkbox" id="fo-saldo" onchange="aplicarFiltrosOS()"> Só com saldo a receber</label>
+            <label class="chk"><input type="checkbox" id="fo-sempreco" onchange="aplicarFiltrosOS()"> Só com preço a definir</label>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="limparFiltrosOS()">✕ Limpar filtros</button>
+        </div>
+        <div class="filtros-contador" id="fo-contador"></div>
+      </div>
+
+      <div class="table-card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nº</th>
+              <th>Cliente</th>
+              <th>Total</th>
+              <th>Saldo</th>
+              <th>Entrega</th>
+              <th>Peças</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="ordens-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- DETALHES / EDIÇÃO DA OS -->
+    <div class="section" id="section-os">
+      <div class="page-header">
+        <div class="page-title"><span>Detalhes da ordem</span><b id="os-det-titulo" style="font-weight:inherit;">OS</b></div>
+        <button class="btn btn-secondary" onclick="voltarParaOrdens()">← Voltar para as ordens</button>
+      </div>
+
+      <div class="form-card" id="os-det-info"></div>
+
+      <div class="form-card">
+        <div class="form-card-title">✂️ PEÇAS, PREÇOS E ANDAMENTO</div>
+        <div class="det-dica">A <strong>situação da peça</strong> é salva na hora. Preços, observações e serviços adicionais só são salvos ao clicar em <strong>Salvar alterações</strong>.</div>
+        <div id="os-det-pecas" class="pecas-root"></div>
+      </div>
+
+      <div class="form-card" id="os-det-resumo"></div>
+
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="voltarParaOrdens()">← Voltar</button>
+        <button class="btn btn-primary" onclick="salvarDetalheOS()">💾 Salvar alterações</button>
+      </div>
+    </div>
+
+    <!-- NOVA OS  -->
+    <div class="section" id="section-nova-os">
+      <div class="page-header">
+        <div class="page-title"><span>Cadastro</span>NOVA ORDEM DE SERVIÇO</div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-title">👤 DADOS DO CLIENTE</div>
+        <div class="form-grid form-grid-3">
+          <div class="form-group busca-cliente">
+            <label>Buscar cliente cadastrado</label>
+            <input type="text" id="os-cliente-busca" placeholder="Digite parte do nome ou do telefone..." autocomplete="off"
+                   oninput="buscaClienteDigitou()" onfocus="mostrarResultadosCliente()" onblur="esconderResultadosCliente()"
+                   onkeydown="tecladoBuscaCliente(event)">
+            <input type="hidden" id="os-cliente-select">
+            <div id="os-cliente-resultados" class="cli-resultados" style="display:none;"></div>
+            <div id="os-cliente-chip" class="cli-chip" style="display:none;"></div>
+          </div>
+          <div class="form-group">
+            <label>Nome do cliente (ou avulso)</label>
+            <input type="text" id="os-cliente-nome" oninput="nomeOSAlterado()">
+          </div>
+          <div class="form-group">
+            <label>Telefone / WhatsApp (avulso)</label>
+            <input type="tel" id="os-cliente-tel" placeholder="(99) 99999-9999">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-title">✂️ PEÇAS E SERVIÇOS</div>
+        <div id="container-pecas" class="pecas-root">
+          <!-- As peças serão inseridas aqui dinamicamente via JS -->
+        </div>
+        <button class="btn btn-secondary" onclick="adicionarBlocoPeca()" style="margin-top: 1rem;">➕ Adicionar Outra Peça</button>
+      </div>
+
+      <div class="form-card">
+        <div class="form-card-title">💰 PAGAMENTO E ENTREGA</div>
+        <div class="form-grid form-grid-4">
+          <div class="form-group">
+            <label>Valor Total (R$)</label>
+            <input type="number" id="os-valor-total" readonly value="0.00" style="font-weight: bold; background: #e9e9e9;">
+          </div>
+          <div class="form-group">
+            <label>Sinal / Entrada (R$)</label>
+            <input type="number" id="os-sinal" value="0.00" min="0" step="0.01" oninput="calcularSaldoOS()">
+          </div>
+          <div class="form-group">
+            <label>Forma do Sinal</label>
+            <select id="os-forma-sinal">
+              <option value="Pix">Pix</option>
+              <option value="Dinheiro">Dinheiro</option>
+              <option value="Cartão de Débito">Cartão de Débito</option>
+              <option value="Cartão de Crédito">Cartão de Crédito</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Previsão de Entrega</label>
+            <input type="date" id="os-data-entrega">
+          </div>
+        </div>
+        <div class="saldo-linha">Saldo a receber: <strong id="os-saldo-display">R$ 0,00</strong></div>
+        <div class="aviso-preco" id="os-aviso-preco"></div>
+        <div class="form-actions">
+          <button class="btn btn-primary" onclick="salvarOS()">✓ Finalizar e Criar OS</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RELATÓRIOS -->
+    <div class="section" id="section-relatorios">
+      <div class="page-header no-print">
+        <div class="page-title"><span>Consulta e impressão</span>RELATÓRIOS</div>
+      </div>
+
+      <div class="rel-tabs no-print">
+        <button class="btn btn-primary btn-sm" id="reltab-producao" onclick="abrirRelatorio('producao')">📅 Produção do dia</button>
+        <button class="btn btn-secondary btn-sm" id="reltab-pendentes" onclick="abrirRelatorio('pendentes')">📋 Tudo que falta fazer</button>
+        <button class="btn btn-secondary btn-sm" id="reltab-clientes" onclick="abrirRelatorio('clientes')">👥 Lista de clientes</button>
+        <button class="btn btn-secondary btn-sm" id="reltab-cliente" onclick="abrirRelatorio('cliente')">👤 Gastos de um cliente</button>
+      </div>
+
+      <!-- controles: produção -->
+      <div class="form-card no-print" id="rel-ctrl-producao">
+        <div class="form-grid form-grid-3" style="margin-bottom:0;">
+          <div class="form-group">
+            <label>Data</label>
+            <input type="date" id="rp-data" onchange="gerarRelatorio()">
+          </div>
+          <div class="form-group">
+            <label>Mostrar</label>
+            <select id="rp-modo" onchange="gerarRelatorio()">
+              <option value="ate">Pendentes até esta data (inclui atrasadas)</option>
+              <option value="dia">Só as com entrega nesta data</option>
+              <option value="todas">Todas as pendentes</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Empresa</label>
+            <select id="rp-empresa" onchange="gerarRelatorio()"></select>
+          </div>
+        </div>
+        <label class="chk" style="margin-top:1rem;"><input type="checkbox" id="rp-prontas" onchange="gerarRelatorio()"> Mostrar também as peças que já estão prontas</label>
+      </div>
+
+      <!-- controles: tudo que falta fazer (sem data) -->
+      <div class="form-card no-print" id="rel-ctrl-pendentes" style="display:none;">
+        <div class="det-dica" style="margin-bottom:1rem;">Mostra <strong>todas as peças que ainda faltam fazer</strong>, de qualquer data de entrega (as já prontas não aparecem). Os filtros abaixo são opcionais.</div>
+        <div class="form-grid form-grid-3" style="margin-bottom:0;">
+          <div class="form-group">
+            <label>Empresa</label>
+            <select id="rt-empresa" onchange="gerarRelatorio()"></select>
+          </div>
+          <div class="form-group">
+            <label>Organizar por</label>
+            <select id="rt-agrupar" onchange="gerarRelatorio()">
+              <option value="os">Ordem de serviço (entrega mais próxima primeiro)</option>
+              <option value="empresa">Empresa (SOS Roupas, Bruan's..., MB Fitness)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- controles: lista de clientes -->
+      <div class="form-card no-print" id="rel-ctrl-clientes" style="display:none;">
+        <div class="form-grid form-grid-3" style="margin-bottom:0;">
+          <div class="form-group">
+            <label>Ordenar por</label>
+            <select id="rc-ordenar" onchange="gerarRelatorio()">
+              <option value="nome">Nome (A–Z)</option>
+              <option value="gasto">Quem mais gastou</option>
+              <option value="recente">Atendimento mais recente</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- controles: um cliente -->
+      <div class="form-card no-print" id="rel-ctrl-cliente" style="display:none;">
+        <div class="form-grid form-grid-3" style="margin-bottom:0;">
+          <div class="form-group">
+            <label>Cliente</label>
+            <select id="r1-cliente" onchange="gerarRelatorio()"></select>
+          </div>
+          <div class="form-group">
+            <label>De (opcional)</label>
+            <input type="date" id="r1-de" onchange="gerarRelatorio()">
+          </div>
+          <div class="form-group">
+            <label>Até (opcional)</label>
+            <input type="date" id="r1-ate" onchange="gerarRelatorio()">
+          </div>
+        </div>
+      </div>
+
+      <div class="rel-acoes no-print">
+        <button class="btn btn-primary" onclick="imprimirRelatorio()">🖨 Imprimir</button>
+        <button class="btn btn-secondary" onclick="salvarRelatorioPDF()">📄 Salvar em PDF</button>
+      </div>
+
+      <div id="rel-saida" class="report"></div>
+    </div>
+
+  </div>
+
+  <!-- COMPROVANTE (renderizado fora da tela para poder virar imagem) -->
+  <div id="os-preview-export" class="os-card-render"></div>
+
+  <!-- MODAL GENÉRICO (confirmações / pagamento) -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal-box" id="modal-box"></div>
+  </div>
+
+  <!-- AVISOS -->
+  <div id="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
